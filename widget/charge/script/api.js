@@ -1,4 +1,4 @@
-var app_url = 'http://ds.duanka.buzz/v1/';
+var app_url = 'http://106.13.114.5/v1/';
 
 //api.js
 ! function(e) {
