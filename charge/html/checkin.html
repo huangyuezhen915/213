@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>签到</title>
+<link rel="stylesheet" href="../css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="../css/swiper.css"/>
+<link rel="stylesheet" href="../css/checkin.css">
+<link rel="stylesheet" type="text/css" href="../css/api.css"/>
+</head>
+<body>
+<div class="container">
+	<div class="row">
+		<div class="col-xs-12 clearPadding">
+			<div class="calendar">
+				<div class="calenbox">
+					<div id="calendar"></div>
+				</div>
+				<div class="text-center" onclick="checkin()" tapmode>
+					<button class="btn btn-qiandao">立即签到</button>
+				</div>
+			</div>
+			<section id="swiper" class="swiper-container" style="top:1.5rem;">
+          <div class="swiper-wrapper">
+              <div v-for="v in it" @click="openWin('web', {title:v.title,url:v.linkurl})" class="swiper-slide" tapmode>
+                  <img height="150px;" width="100%" :data-src="v.picurl" class="swiper-lazy" />
+              </div>
+          </div>
+          <div id="pagination" class="swiper-pagination"></div>
+      </section>
+		</div>
+	</div>
+</div>
+<section class="aui-content-padded" id="checkinlist" style="top:1.5rem;">
+<div class="aui-content aui-margin-b-15">
+				<ul class="aui-list aui-media-list">
+						<li class="aui-list-header">
+								我的签到信息记录
+						</li>
+						<li class="aui-list-item aui-list-item-arrow" v-for="v in it">
+								<div class="aui-media-list-item-inner">
+										<div class="aui-list-item-inner">
+												<div class="aui-list-item-text">
+														<div class="aui-list-item-title" v-text="v.remark" style="width:180px;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+														<div class="aui-list-item-right" v-text="tb_date(v.createtime)" style="width:80px;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+												</div>
+												<div class="aui-list-item-text aui-ellipsis-2" v-text="v.uid"></div>
+										</div>
+								</div>
+						</li>
+				</ul>
+</div>
+<div class="aui-card-list-footer aui-text-center" style="clear:both" v-text="loader"></div>
+</section>
+<script type="text/javascript" src="../script/jquery.js"></script>
+<script type="text/javascript" src="../script/calendar.js"></script>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/swiper.js"></script>
+<script type="text/javascript" src="../script/vue.js"></script>
+<script type="text/javascript" src="../script/toast.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script>
+apiready = function(){
+		api.parseTapmode();
+		pullRefresh();
+		//轮播图
+		var swiper = new Vue({
+				el: '#swiper',
+				data: {it: []},
+				mounted: function(){
+						$api.get('app/adv/id,picurl,linkurl/5?type=5', function(json){
+								swiper.it = json;
+						});
+				},
+				updated: function(){
+						new Swiper('#swiper', {
+								loop: true,
+								autoplay: true,
+								pagination: {el: '#pagination'},
+								lazy: {loadPrevNext: true},
+						});
+				},
+		});
+		var checkinlist = new Vue({
+				el: '#checkinlist',
+				data: {
+						it: [],
+						offset: 0,
+						loader: '正在加载更多...'
+				},
+				mounted: function(){
+						this.add(); //初始化
+						loadMore(function(){checkinlist.add()}); //下拉加载
+						//登入登出检测
+						LoginOut(function(){
+								checkinlist.add();
+						}, function(){
+								location.reload();
+						});
+				},
+				methods: {
+						add: function(){
+								var limit = 6;
+								var url = 'my/checkinlist/remark,createtime/';
+								url += limit +'/'+ this.offset +'/createtime/desc';
+								$api.get(url, function(json){
+										checkinlist.offset += limit;
+										checkinlist.it = checkinlist.it.concat(json);
+										if(json.length < limit) checkinlist.loader = '已到底部'
+								}, function(json){
+										if(json.code === -1){
+												checkinlist.loader = '请先登陆'
+										}
+								});
+						},
+				}
+		});
+		$api.get('my/checkin', function(json){
+				calUtil.init(json, 'load');
+		});
+}
+function checkin(){
+		$api.post('my/checkin', function(money){
+				api.toast({ msg: '签到成功,奖励 '+ money +' 金币' });
+				api.sendEvent({name: 'reload'});
+				setTimeout(function(){
+						location.reload();
+				}, 2000);
+		}, function(json){
+				api.toast({ msg: json.msg });
+		});
+}
+</script>
+</body>
+</html>

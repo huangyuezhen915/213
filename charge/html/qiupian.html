@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+      <title>title</title>
+      <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+      <style>
+      .image-list {
+          width: 100%;
+          height: 85px;
+          background-size: cover;
+          padding: 10px 10px;
+          overflow: hidden;
+      }
+      .image-item {
+          width: 65px;
+          height: 65px;
+          background-image: url(../image/add.png);
+          background-size: 100% 100%;
+          display: inline-block;
+          position: relative;
+          border-radius: 5px;
+          margin-right: 10px;
+          margin-bottom: 10px;
+          border: solid 1px #e8e8e8;
+      }
+      .image-item .image-close {
+          position: absolute;
+          display: inline-block;
+          right: -6px;
+          top: -6px;
+          width: 20px;
+          height: 20px;
+          text-align: center;
+          line-height: 20px;
+          border-radius: 12px;
+          background-color: #f26c85;
+          color: #fff;
+          border: solid 1px #f26c85;
+          font-size: 0.6rem;
+          font-weight: 200;
+          z-index: 1;
+      }
+      </style>
+  </head>
+  <body>
+      <section class="aui-content" id="qiupian">
+          <ul class="aui-list aui-form-list">
+              <li class="aui-list-header">片源名称</li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-input">
+                          <input type="text" v-model="title" placeholder="请输入你需要的片源名称">
+                      </div>
+                  </div>
+              </li>
+              <li class="aui-list-header">其他描述信息</li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-input">
+                          <textarea placeholder="如有其他内容在此填写..." v-model="content"></textarea>
+                      </div>
+                  </div>
+              </li>
+              <li class="aui-list-header">图片(选填,提供相关截图)</li>
+              <li class="aui-list-item">
+                  <div class="image-list">
+                      <div v-for="(v,k) in images" class="image-item" :style="add(k)">
+                          <div class="image-close" @click="del(k)" tapmode>X</div>
+                      </div>
+                      <div class="image-item" v-if="images.length < 4" @click="select()" tapmode></div>
+                  </div>
+              </li>
+              <li class="aui-list-header">您的联系资料</li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-input">
+                          <input type="text" v-model="qq" placeholder="选题，便于我们联系你">
+                      </div>
+                  </div>
+              </li>
+          </ul>
+      </section>
+      <section class="aui-content-padded" id="qiupianlist">
+      <div class="aui-content aui-margin-b-15">
+              <ul class="aui-list aui-media-list">
+                  <li class="aui-list-header">
+                      最新求片信息
+                  </li>
+                  <li class="aui-list-item aui-list-item-arrow" v-for="v in it">
+                      <div class="aui-media-list-item-inner">
+                          <div class="aui-list-item-inner">
+                              <div class="aui-list-item-text">
+                                  <div class="aui-list-item-title" v-text="v.title" style="width:100px;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                                  <div class="aui-list-item-right" v-text="tb_date(v.createtime)" style="width:80px;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                              </div>
+                              <div class="aui-list-item-text aui-ellipsis-2" v-text="v.content"></div>
+                          </div>
+                      </div>
+                  </li>
+              </ul>
+      </div>
+      <div class="aui-card-list-footer aui-text-center" style="clear:both" v-text="loader"></div>
+      </section>
+  </body>
+  <script type="text/javascript" src="../script/api.js"></script>
+  <script type="text/javascript" src="../script/vue.js"></script>
+  <script type="text/javascript" src="../script/toast.js"></script>
+  <script type="text/javascript" src="../script/common.js"></script>
+  <script type="text/javascript">
+  var qiupian;
+  apiready = function(){
+      api.parseTapmode();
+      pullRefresh();
+      qiupian = new Vue({
+          el: '#qiupian',
+          data: {title:'', content:'', images:[], qq:''},
+          methods: {
+              //选择图片
+              select: function(){
+                  api.getPicture({
+                      sourceType: 'library',
+                      encodingType: 'jpg',
+                  }, function(ret, err) {
+                      if (ret && ret.data && qiupian.images.length < 4) {
+                          qiupian.images = qiupian.images.concat(ret.data);
+                      }
+                  });
+              },
+              //添加图片
+              add: function(k){
+                  return 'background-image:url('+ qiupian.images[k] +')';
+              },
+              //删除图片
+              del: function(k){
+                  qiupian.images.splice(k, 1);
+              },
+          }
+      });
+      var qiupianlist = new Vue({
+          el: '#qiupianlist',
+          data: {
+              it: [],
+              offset: 0,
+              loader: '正在加载更多...'
+          },
+          mounted: function(){
+              this.add(); //初始化
+              loadMore(function(){qiupianlist.add()}); //下拉加载
+              //登入登出检测
+              LoginOut(function(){
+                  qiupianlist.add();
+              }, function(){
+                  location.reload();
+              });
+          },
+          methods: {
+              add: function(){
+                  var limit = 6;
+                  var url = 'my/qiupianlist/title,content,createtime/';
+                  url += limit +'/'+ this.offset +'/createtime/desc';
+                  $api.get(url, function(json){
+                      qiupianlist.offset += limit;
+                      qiupianlist.it = qiupianlist.it.concat(json);
+                      if(json.length < limit) qiupianlist.loader = '已到底部'
+                  }, function(json){
+                      if(json.code === -1){
+                          qiupianlist.loader = '请先登陆后查看'
+                      }
+                  });
+              },
+          }
+      });
+      api.addEventListener({
+          name: 'reload'
+      }, function(ret, err){
+          if(ret){
+              location.reload();
+          }
+      });
+  };
+  function save(){
+      var toast = new auiToast();
+      if(qiupian.content === ''){
+          api.alert({
+              msg: '请填写描述信息',
+          });
+          return false;
+      }
+      if(qiupian.title === ''){
+          api.alert({
+              msg: '请填写需要的片源片名',
+          });
+          return false;
+      }
+      var json = {};
+      for (var i in qiupian.images) {
+          json['image'+i] = qiupian.images[i];
+      }
+      api.ajax({
+          url: app_url +'my/qiupian',
+          method: 'post',
+          headers: {
+              token: $api.getStorage('token')
+          },
+          certificate: {
+              path: 'widget://charge/image/client.p12',
+              password: 'dXF5r6fkwIwojeV3'
+          },
+          data: {
+              values: {title:qiupian.title, content:qiupian.content, qq:qiupian.qq},
+              files: json,
+          }
+      },function(ret, err){
+          if (ret) {
+              if(ret.code === 0){
+                  toast.success({title: '提交成功'});
+                  qiupian.title = '';
+                  qiupian.content = '';
+                  qiupian.images = [];
+              }else{
+                  api.alert({
+                      msg: ret.msg,
+                  });
+              }
+          }
+      });
+  }
+  </script>
+  </html>
